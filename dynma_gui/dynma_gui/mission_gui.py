@@ -208,47 +208,52 @@ class MapCanvas(FigureCanvas):
     def set_assignment(self, tid, aid):
         self._assign[tid] = aid
 
-        # ---------- 플롯 그리기 ---------- #
     def redraw(self):
-        # --- 축 초기화 -------------------------------------------------
+        # --- 1) 축 초기화 ----------------------------------------
         self.ax.cla()
-        self.ax.set_aspect("equal", "box")
+        self.ax.set_aspect("equal","box")
         self.ax.grid(True, linestyle=":", alpha=0.3)
         self.ax.set_xlabel("Lon (°)")
         self.ax.set_ylabel("Lat (°)")
 
-        # --- Agents ----------------------------------------------------
+        # --- 2) Agents 그리기 ------------------------------------
         if self._agents:
             xs, ys = zip(*self._agents.values())
             self.ax.scatter(xs, ys, c="tab:blue", s=60, label="Agents")
-            for aid, (x, y) in self._agents.items():
+            for aid,(x,y) in self._agents.items():
                 self.ax.text(x, y, f" {aid}", va="bottom", ha="left",
                              color="blue", fontsize=8)
 
-        # --- Tasks -----------------------------------------------------
+        # --- 3) Tasks 그리기 -------------------------------------
         if self._tasks:
             xs, ys = zip(*self._tasks.values())
             self.ax.scatter(xs, ys, c="tab:red", marker="s",
                             s=60, label="Tasks")
-            for tid, (x, y) in self._tasks.items():
+            for tid,(x,y) in self._tasks.items():
                 self.ax.text(x, y, f" {tid}", va="top", ha="right",
                              color="red", fontsize=8)
-  
-        # --- Assignment lines -----------------------------------------
+
+        # --- 4) Assignment 선 그리기 -----------------------------
         for tid, aid in self._assign.items():
             if aid in self._agents and tid in self._tasks:
-                x1, y1 = self._agents[aid]
-                x2, y2 = self._tasks[tid]
-                self.ax.plot([x1, x2], [y1, y2],
+                x1,y1 = self._agents[aid]
+                x2,y2 = self._tasks[tid]
+                self.ax.plot([x1,x2], [y1,y2],
                              linestyle="--", linewidth=1,
                              color="tab:green", alpha=0.8)
 
-        # --- 축 범위 자동 조정 & 그리기 -------------------------------
-        self.ax.relim()
-        self.ax.autoscale_view()
-        self.ax.margins(0.01)          # 여백 20 %
+        # --- 5) 고정 축 범위 (테스트용) ---------------------------
+        self.ax.set_xlim(127.2108, 127.2207)   # Lon 최소/최대
+        self.ax.set_ylim(34.6084,  34.6090)   # Lat 최소/최대
+
+        # --- 6) 1:1 비율 유지 ------------------------------------
+        self.ax.set_aspect('equal', adjustable='datalim')
+
+        # --- 7) 범례 & 그리기 ------------------------------------
         self.ax.legend(loc="upper right")
-        self.draw_idle()
+        self.draw()   # draw_idle 대신 draw()로 즉시 갱신
+
+
 
 
 
@@ -385,7 +390,7 @@ class MissionGUI(QWidget):
         left_v.addWidget(QLabel("Initial GPS for agents (optional):"))
         self.init_table = QTableWidget(0, 3)                # ← 먼저 만든다
         self.init_table.setHorizontalHeaderLabels(["Agent", "Lat", "Lon"])
-        for aid in ["KARI_4", "KARI_5", "KARI_6"]:
+        for aid in ["KARI_4", "KARI_5", "KARI_6", "KARI_7", "KARI_8"]:
             r = self.init_table.rowCount()
             self.init_table.insertRow(r)
             self.init_table.setItem(r, 0, QTableWidgetItem(aid))
@@ -631,7 +636,7 @@ QPushButton:pressed{background:#004C99;}
         aid = msg.agent_id
 
         # (2) 고정된 에이전트 리스트
-        expected_agents = ["KARI_4", "KARI_5", "KARI_6"]
+        expected_agents = ["KARI_4", "KARI_5", "KARI_6", "KARI_7", "KARI_8"]
         # 아직 메시지 안 받은 에이전트 있으면 대기
         self._state_buffer[aid] = list(msg.state)
         if any(a not in self._state_buffer for a in expected_agents):
